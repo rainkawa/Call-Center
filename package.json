@@ -1,23 +1,41 @@
 {
-    "name": "call-center-tycoon",
-    "version": "1.0.0",
+    "name": "call-center-tycoon-3d",
+    "version": "2.0.0",
     "private": true,
     "type": "module",
-    "description": "Call Center Tycoon - Build your outbound call center empire",
+    "description": "Call Center Tycoon 3D - web game + Android edition (Expo)",
+    "main": "index.js",
     "scripts": {
+        "start": "expo start",
+        "android": "expo start --android",
+        "ios": "expo start --ios",
+        "web": "expo start --web",
         "test": "node tests/node-test.mjs",
-        "serve": "npx serve -p 8080"
+        "serve": "npx serve -p 8080",
+        "build:webview": "node scripts/build-webview.mjs",
+        "sync:www": "node scripts/sync-www.mjs",
+        "export:android": "npx expo export --platform android"
     },
     "keywords": [
         "game",
         "simulation",
         "tycoon",
-        "call-center"
+        "call-center",
+        "expo",
+        "android",
+        "threejs"
     ],
     "license": "MIT",
     "dependencies": {
-        "@capacitor/android": "^8.5.0",
-        "@capacitor/cli": "^8.5.0",
-        "@capacitor/core": "^8.5.0"
+        "expo": "~57.0.18",
+        "expo-haptics": "~57.0.2",
+        "expo-keep-awake": "~57.0.1",
+        "expo-navigation-bar": "~57.0.2",
+        "expo-screen-orientation": "~57.0.2",
+        "expo-splash-screen": "~57.0.6",
+        "expo-status-bar": "~57.0.1",
+        "react": "19.2.3",
+        "react-native": "0.86.3",
+        "react-native-webview": "13.16.1"
     }
 }

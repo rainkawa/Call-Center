@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Call Center Tycoon 3D</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
@@ -1083,10 +1083,13 @@
 
 
 
-<style id="mobile-controls-v3-css">
+<style id="callcenter-mobile-css">
 
 /* ============================================================
-   CALL CENTER TYCOON 3D - MOBILE CONTROLS V3
+   CALL CENTER TYCOON 3D - ANDROID / TOUCH UI
+   Designed from scratch for landscape phones & tablets.
+   Tied to html.mobile-device (set by game.js) so the desktop
+   build is 100% untouched.
    ============================================================ */
 
 #mobile-controls {
@@ -1101,368 +1104,740 @@
     font-family: Inter, system-ui, sans-serif;
 }
 
+html.mobile-device #mobile-controls {
+    display: block;
+}
+
+html.mobile-device {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+html.mobile-device body {
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+html.mobile-device #canvas {
+    touch-action: none;
+}
+
 #mobile-controls *,
 #mobile-controls button {
     box-sizing: border-box;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
-@media (pointer: coarse), (max-width: 900px) {
-
-    #mobile-controls {
-        display: block;
-    }
-
-    body {
-        touch-action: none;
-        overscroll-behavior: none;
-    }
-
-    #canvas {
-        touch-action: none;
-    }
-
-    /* ========================================================
-       LEFT ACTION PANEL
-       ======================================================== */
-
-    #mobile-left-actions {
-        position: absolute;
-        left: max(12px, env(safe-area-inset-left));
-        bottom: max(14px, env(safe-area-inset-bottom));
-        width: 82px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-
-        pointer-events: auto;
-    }
-
-    .mobile-action {
-        width: 82px;
-        height: 58px;
-
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,.16);
-
-        background: rgba(13,17,23,.92);
-        color: #f0f6fc;
-
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-
-        gap: 2px;
-
-        font-weight: 900;
-        font-size: 10px;
-        letter-spacing: .04em;
-
-        box-shadow: 0 4px 14px rgba(0,0,0,.35);
-
-        padding: 0;
-        margin: 0;
-
-        transition: transform .08s ease;
-    }
-
-    .mobile-action span {
-        font-size: 20px;
-        line-height: 20px;
-    }
-
-    .mobile-action b {
-        font-size: 9px;
-    }
-
-    .mobile-action.pressed {
-        transform: scale(.91);
-    }
-
-    .mobile-buy {
-        border-color: rgba(0,229,199,.75);
-        color: #00e5c7;
-    }
-
-    .mobile-wake {
-        border-color: rgba(59,130,246,.75);
-        color: #60a5fa;
-    }
-
-    .mobile-pause {
-        border-color: rgba(245,158,11,.75);
-        color: #f59e0b;
-    }
-
-    .mobile-help {
-        border-color: rgba(255,255,255,.25);
-    }
-
-    /* ========================================================
-       SPEED
-       ======================================================== */
-
-    #mobile-speed {
-        width: 82px;
-
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 4px;
-
-        pointer-events: auto;
-
-        padding: 4px;
-
-        border-radius: 12px;
-        background: rgba(13,17,23,.88);
-        border: 1px solid rgba(255,255,255,.12);
-    }
-
-    #mobile-speed button {
-        height: 30px;
-
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: 7px;
-
-        background: #0d1117;
-        color: #8b949e;
-
-        font-size: 10px;
-        font-weight: 900;
-    }
-
-    #mobile-speed button.active {
-        background: #00e5c7;
-        color: #0d1117;
-        border-color: #00e5c7;
-    }
-
-    /* ========================================================
-       RIGHT ANALOG JOYSTICK
-       ======================================================== */
-
-    #mobile-joystick {
-        position: absolute;
-        right: max(18px, env(safe-area-inset-right));
-        bottom: max(20px, env(safe-area-inset-bottom));
-
-        width: 170px;
-        height: 170px;
-
-        pointer-events: auto;
-    }
-
-    #joystick-base {
-        position: absolute;
-
-        left: 50%;
-        top: 50%;
-
-        width: 150px;
-        height: 150px;
-
-        transform: translate(-50%, -50%);
-
-        border-radius: 50%;
-
-        background: rgba(13,17,23,.55);
-
-        border: 2px solid rgba(255,255,255,.14);
-
-        box-shadow:
-            inset 0 0 25px rgba(0,0,0,.35),
-            0 5px 20px rgba(0,0,0,.3);
-
-        overflow: hidden;
-    }
-
-    #joystick-ring {
-        position: absolute;
-
-        left: 50%;
-        top: 50%;
-
-        width: 92px;
-        height: 92px;
-
-        transform: translate(-50%, -50%);
-
-        border-radius: 50%;
-
-        border: 1px solid rgba(0,229,199,.18);
-
-        pointer-events: none;
-    }
-
-    #joystick-stick {
-        position: absolute;
-
-        left: 50%;
-        top: 50%;
-
-        width: 62px;
-        height: 62px;
-
-        transform: translate(-50%, -50%);
-
-        border-radius: 50%;
-
-        background: rgba(0,229,199,.78);
-
-        border: 2px solid rgba(255,255,255,.35);
-
-        box-shadow:
-            0 4px 16px rgba(0,0,0,.4),
-            0 0 18px rgba(0,229,199,.2);
-
-        pointer-events: none;
-    }
-
-    /* ========================================================
-       DESKTOP UI HIDE
-       ======================================================== */
-
-    .controls-panel {
-        display: none !important;
-    }
-
-    /* Reduce expensive browser compositing */
-    .hud-stat,
-    .hud-center,
-    .metrics-bar,
-    .activity-feed {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-    }
-
-    .interaction-prompt {
-        bottom: 180px !important;
-        max-width: 230px !important;
-        min-width: 180px !important;
-    }
-
-    .prompt-long {
-        display: none !important;
-    }
-
-    .prompt-key {
-        display: none !important;
+/* ============================================================
+   FLOATING ANALOG JOYSTICK (LEFT THUMB)
+   ============================================================ */
+
+#mobile-joystick {
+    position: absolute;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: 152px;
+    height: 152px;
+    pointer-events: auto;
+}
+
+#joystick-base {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            rgba(0, 229, 199, .22) 0%,
+            rgba(13, 17, 23, .55) 48%,
+            rgba(5, 8, 12, .78) 100%
+        );
+
+    border: 2px solid rgba(0, 229, 199, .4);
+
+    box-shadow:
+        0 10px 32px rgba(0, 0, 0, .45),
+        inset 0 0 30px rgba(0, 229, 199, .08);
+}
+
+#joystick-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 96px;
+    height: 96px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px dashed rgba(0, 229, 199, .28);
+    pointer-events: none;
+}
+
+#joystick-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 68px;
+    height: 68px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle at 35% 28%,
+            rgba(255, 255, 255, .4) 0%,
+            rgba(0, 229, 199, .92) 42%,
+            rgba(0, 88, 78, .96) 100%
+        );
+
+    border: 2px solid rgba(255, 255, 255, .5);
+
+    box-shadow:
+        0 6px 22px rgba(0, 0, 0, .55),
+        0 0 26px rgba(0, 229, 199, .4);
+
+    pointer-events: none;
+}
+
+/* ============================================================
+   RIGHT CONTROL PAD (RIGHT THUMB): speed + actions
+   ============================================================ */
+
+#mobile-right-pad {
+    position: absolute;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+
+    pointer-events: none;
+}
+
+#mobile-speed {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 12px;
+    background: rgba(13, 17, 23, .82);
+    border: 1px solid rgba(255, 255, 255, .12);
+    pointer-events: auto;
+}
+
+#mobile-speed button {
+    width: 46px;
+    height: 27px;
+    border: none;
+    border-radius: 7px;
+    background: #161b22;
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+#mobile-speed button.active {
+    background: #00e5c7;
+    color: #0d1117;
+}
+
+#mobile-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 66px);
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.mobile-action {
+    width: 66px;
+    height: 58px;
+    padding: 0;
+    margin: 0;
+
+    border-radius: 14px;
+    border: 1.5px solid rgba(255, 255, 255, .18);
+    background: rgba(13, 17, 23, .92);
+    color: #f0f6fc;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+
+    font-weight: 900;
+    font-size: 9px;
+    letter-spacing: .04em;
+    font-family: inherit;
+
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+
+    transition: transform .06s ease, background .12s ease;
+}
+
+.mobile-action span {
+    font-size: 21px;
+    line-height: 21px;
+}
+
+.mobile-action b {
+    font-size: 9px;
+}
+
+.mobile-action.pressed {
+    transform: scale(.9);
+    background: rgba(255, 255, 255, .14);
+}
+
+.mobile-buy {
+    border-color: rgba(0, 229, 199, .85);
+    color: #00e5c7;
+}
+
+.mobile-wake {
+    border-color: rgba(59, 130, 246, .85);
+    color: #60a5fa;
+}
+
+.mobile-pause {
+    border-color: rgba(245, 158, 11, .85);
+    color: #fbbf24;
+}
+
+.mobile-help {
+    border-color: rgba(139, 148, 158, .75);
+    color: #cbd5e1;
+}
+
+/* Activity toggle mini button (floats above joystick) */
+#mobile-log-toggle {
+    position: absolute;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 158px);
+
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(13, 17, 23, .85);
+    color: #8b949e;
+    font-size: 17px;
+    line-height: 1;
+    pointer-events: auto;
+}
+
+#mobile-log-toggle.active {
+    color: #00e5c7;
+    border-color: rgba(0, 229, 199, .6);
+}
+
+/* Settings gear (bottom center) */
+#mobile-settings {
+    position: absolute;
+    left: 50%;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(13, 17, 23, .85);
+    color: #8b949e;
+    font-size: 18px;
+    line-height: 1;
+    pointer-events: auto;
+}
+
+#mobile-settings.active {
+    color: #00e5c7;
+    border-color: rgba(0, 229, 199, .6);
+}
+
+/* ============================================================
+   HUD - COMPACT TOP STRIP
+   ============================================================ */
+
+html.mobile-device .hud-top {
+    padding: max(6px, env(safe-area-inset-top)) 10px 0;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+html.mobile-device .hud-section {
+    gap: 6px;
+}
+
+html.mobile-device .hud-stat {
+    padding: 5px 9px;
+    border-radius: 9px;
+    min-width: 0;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(13, 17, 23, .78);
+}
+
+html.mobile-device .hud-stat-value {
+    font-size: .95rem;
+}
+
+html.mobile-device .hud-stat-label {
+    font-size: .5rem;
+}
+
+html.mobile-device .hud-center {
+    top: max(6px, env(safe-area-inset-top));
+    padding: 5px 14px;
+    border-radius: 12px;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+html.mobile-device .hud-time {
+    font-size: 1.15rem;
+}
+
+html.mobile-device .hud-day {
+    font-size: .58rem;
+    margin-top: 1px;
+}
+
+html.mobile-device .hud-title {
+    display: none;
+}
+
+/* Very narrow landscape phones: only keep the key chips */
+@media (max-width: 700px) and (orientation: landscape) {
+    html.mobile-device .hud-top > .hud-section:last-child {
+        display: none;
     }
 }
 
 /* ============================================================
-   SMALL PHONES
+   METRICS PANEL - COLLAPSED BY DEFAULT, OVERLAYS ON DEMAND
    ============================================================ */
 
-@media (max-width: 430px) {
+html.mobile-device .metrics-bar {
+    top: calc(max(6px, env(safe-area-inset-top)) + 52px);
+    right: 8px;
+    width: 152px;
+    max-width: 152px;
+    padding: 8px;
+    min-width: 0;
+    transform: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
 
-    #mobile-left-actions {
-        left: 8px;
-        bottom: 10px;
-        width: 70px;
-        gap: 5px;
+html.mobile-device .metrics-bar.collapsed {
+    transform: translateX(calc(100% + 8px)) !important;
+}
+
+html.mobile-device .metrics-toggle {
+    left: -24px;
+    width: 22px;
+    height: 24px;
+    font-size: .6rem;
+}
+
+html.mobile-device .metrics-header {
+    font-size: .58rem;
+    margin-bottom: 6px;
+}
+
+html.mobile-device .metric-row {
+    padding: 2px 0;
+}
+
+html.mobile-device .metric-label {
+    font-size: .58rem;
+}
+
+html.mobile-device .metric-value {
+    font-size: .62rem;
+}
+
+html.mobile-device .metrics-divider {
+    margin: 6px 0;
+}
+
+html.mobile-device .upgrade-badge {
+    font-size: .56rem;
+    padding: 1px 4px;
+}
+
+/* ============================================================
+   INTERACTION PROMPT - TOP CENTER (visible while playing)
+   ============================================================ */
+
+html.mobile-device .interaction-prompt {
+    top: calc(max(6px, env(safe-area-inset-top)) + 56px);
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%) scale(.94);
+    width: 236px;
+    max-width: 260px;
+    min-width: 0;
+    padding: 10px 14px;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 14px;
+}
+
+html.mobile-device .interaction-prompt.visible {
+    transform: translateX(-50%) scale(1);
+}
+
+html.mobile-device .prompt-icon {
+    font-size: 1.15rem;
+    margin-bottom: 2px;
+}
+
+html.mobile-device .prompt-title {
+    font-size: .8rem;
+    margin-bottom: 2px;
+}
+
+html.mobile-device .prompt-desc {
+    font-size: .7rem;
+    margin-bottom: 3px;
+}
+
+html.mobile-device .prompt-long,
+html.mobile-device .prompt-level {
+    display: none !important;
+}
+
+html.mobile-device .prompt-cost {
+    font-size: .85rem;
+}
+
+html.mobile-device .prompt-key {
+    font-size: .68rem;
+    padding: 4px 10px;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   ACTIVITY FEED - ABOVE JOYSTICK, COLLAPSIBLE
+   ============================================================ */
+
+html.mobile-device .activity-feed {
+    top: calc(max(6px, env(safe-area-inset-top)) + 46px);
+    left: max(10px, env(safe-area-inset-left));
+    bottom: auto;
+    width: 176px;
+    max-width: 176px;
+    max-height: 100px;
+    padding: 8px 10px;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1;
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+html.mobile-device .activity-feed.hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+}
+
+html.mobile-device .activity-header {
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+}
+
+html.mobile-device .activity-header h4 {
+    font-size: .6rem;
+}
+
+html.mobile-device .activity-item {
+    padding: 3px 0;
+}
+
+html.mobile-device .activity-text {
+    font-size: .6rem;
+    line-height: 1.25;
+}
+
+html.mobile-device .activity-list {
+    max-height: 74px;
+}
+
+/* ============================================================
+   START MENU
+   ============================================================ */
+
+html.mobile-device .start-menu {
+    padding: 14px;
+}
+
+html.mobile-device .start-logo {
+    font-size: 3rem;
+    margin-bottom: 4px;
+}
+
+html.mobile-device .start-title {
+    font-size: 1.7rem;
+    margin-bottom: 4px;
+}
+
+html.mobile-device .start-subtitle {
+    font-size: .8rem;
+    margin-bottom: 18px;
+}
+
+html.mobile-device .start-buttons {
+    gap: 10px;
+}
+
+html.mobile-device .start-btn {
+    padding: 15px 34px;
+    font-size: .95rem;
+    min-width: 236px;
+    border-radius: 12px;
+    min-height: 54px;
+}
+
+/* ============================================================
+   TUTORIAL OVERLAY
+   ============================================================ */
+
+html.mobile-device .tutorial-overlay {
+    top: calc(max(6px, env(safe-area-inset-top)) + 56px);
+    bottom: auto;
+    width: min(330px, 92vw);
+    padding: 14px 18px 12px;
+    border-radius: 14px;
+}
+
+html.mobile-device .tutorial-step {
+    font-size: .62rem;
+    margin-bottom: 4px;
+}
+
+html.mobile-device .tutorial-message {
+    font-size: .92rem;
+}
+
+html.mobile-device .tutorial-hint {
+    font-size: .72rem;
+    margin-top: 6px;
+}
+
+html.mobile-device .tutorial-skip {
+    top: 8px;
+    right: 12px;
+    font-size: .62rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+/* ============================================================
+   HELP OVERLAY
+   ============================================================ */
+
+html.mobile-device .help-content {
+    padding: 22px 14px 14px;
+    border-radius: 14px;
+    max-width: 100%;
+    width: 96vw;
+    max-height: 96vh;
+}
+
+html.mobile-device .help-content h1 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+}
+
+html.mobile-device .help-close {
+    top: 10px;
+    right: 12px;
+    font-size: 1.7rem;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+
+html.mobile-device .help-sections {
+    gap: 10px;
+    padding: 0 4px;
+}
+
+html.mobile-device .help-section {
+    padding: 10px;
+    border-radius: 10px;
+}
+
+html.mobile-device .help-section h2 {
+    font-size: .8rem;
+    margin-bottom: 6px;
+}
+
+html.mobile-device .help-section p {
+    font-size: .7rem;
+    line-height: 1.35;
+    margin-bottom: 4px;
+}
+
+html.mobile-device .help-grid,
+html.mobile-device .help-upgrades {
+    font-size: .68rem;
+    gap: 4px;
+}
+
+html.mobile-device .help-milestones {
+    font-size: .72rem;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+html.mobile-device .help-footer {
+    font-size: .72rem;
+    margin-top: 12px;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+
+html.mobile-device .settings-btn {
+    display: none !important;
+}
+
+html.mobile-device .settings-dropdown {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(320px, 92vw);
+    min-width: 0;
+    border-radius: 16px;
+    padding: 18px;
+}
+
+html.mobile-device .settings-option {
+    font-size: 1rem;
+    padding: 11px 0;
+}
+
+html.mobile-device .settings-option input {
+    width: 22px;
+    height: 22px;
+}
+
+html.mobile-device .settings-respawn {
+    padding: 13px;
+    font-size: .9rem;
+}
+
+/* ============================================================
+   MILESTONE POPUP
+   ============================================================ */
+
+html.mobile-device .milestone-icon {
+    font-size: 3.2rem;
+}
+
+html.mobile-device .milestone-title {
+    font-size: 1.7rem;
+    margin: 14px 0 6px;
+}
+
+html.mobile-device .milestone-subtitle {
+    font-size: 1rem;
+}
+
+html.mobile-device .milestone-message {
+    font-size: .85rem;
+    margin-bottom: 20px;
+}
+
+html.mobile-device .milestone-close {
+    padding: 15px 32px;
+    font-size: 1rem;
+}
+
+/* ============================================================
+   MISC
+   ============================================================ */
+
+html.mobile-device .controls-panel,
+html.mobile-device .speed-indicator {
+    display: none !important;
+}
+
+html.mobile-device .money-popup {
+    font-size: 1rem;
+}
+
+html.mobile-device .loading-title {
+    font-size: 1.6rem;
+}
+
+html.mobile-device .loading-tip {
+    font-size: .72rem;
+    max-width: 320px;
+}
+
+html.mobile-device .loading-bar {
+    width: 230px;
+}
+
+/* ============================================================
+   SMALL LANDSCAPE PHONES (heights <= 400)
+   ============================================================ */
+
+@media (orientation: landscape) and (max-height: 400px) {
+    html.mobile-device #mobile-joystick {
+        width: 128px;
+        height: 128px;
+        left: max(10px, env(safe-area-inset-left));
+        bottom: max(10px, env(safe-area-inset-bottom));
     }
 
-    .mobile-action {
-        width: 70px;
+    html.mobile-device #joystick-knob {
+        width: 58px;
+        height: 58px;
+    }
+
+    html.mobile-device #mobile-actions {
+        grid-template-columns: repeat(2, 58px);
+        gap: 6px;
+    }
+
+    html.mobile-device .mobile-action {
+        width: 58px;
         height: 50px;
         border-radius: 12px;
     }
 
-    .mobile-action span {
-        font-size: 17px;
-        line-height: 17px;
+    html.mobile-device .mobile-action span {
+        font-size: 18px;
+        line-height: 18px;
     }
 
-    .mobile-action b {
-        font-size: 8px;
+    html.mobile-device #mobile-speed button {
+        width: 40px;
+        height: 23px;
     }
 
-    #mobile-speed {
-        width: 70px;
+    html.mobile-device #mobile-log-toggle {
+        bottom: calc(max(10px, env(safe-area-inset-bottom)) + 132px);
     }
 
-    #mobile-speed button {
-        height: 27px;
-        font-size: 9px;
+    html.mobile-device .activity-feed {
+        max-height: 84px;
     }
 
-    #mobile-joystick {
-        right: 8px;
-        bottom: 10px;
-
-        width: 145px;
-        height: 145px;
-    }
-
-    #joystick-base {
-        width: 130px;
-        height: 130px;
-    }
-
-    #joystick-stick {
-        width: 55px;
-        height: 55px;
-    }
-}
-
-/* ============================================================
-   LANDSCAPE PHONE
-   ============================================================ */
-
-@media (orientation: landscape) and (max-height: 520px) {
-
-    #mobile-left-actions {
-        bottom: 8px;
-        left: 8px;
-
-        width: 65px;
-
-        gap: 4px;
-    }
-
-    .mobile-action {
-        width: 65px;
-        height: 42px;
-        border-radius: 10px;
-    }
-
-    .mobile-action span {
-        font-size: 14px;
-        line-height: 14px;
-    }
-
-    .mobile-action b {
-        font-size: 7px;
-    }
-
-    #mobile-speed {
-        width: 65px;
-    }
-
-    #mobile-speed button {
-        height: 22px;
-    }
-
-    #mobile-joystick {
-        right: 10px;
-        bottom: 7px;
-
-        width: 125px;
-        height: 125px;
-    }
-
-    #joystick-base {
-        width: 112px;
-        height: 112px;
-    }
-
-    #joystick-stick {
-        width: 48px;
-        height: 48px;
+    html.mobile-device .activity-list {
+        max-height: 58px;
     }
 }
 
@@ -1696,474 +2071,62 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="three.min.js"></script>
     <script src="game.js"></script>
 
 <script src="mobile-controls.js"></script>
 
 <!-- ============================================================
-     MOBILE CONTROLS
+     ANDROID / TOUCH CONTROLS
      ============================================================ -->
-</div>
 
-
-<!-- MOBILE CONTROLS V5 -->
 <div id="mobile-controls">
 
+    <!-- Floating analog joystick (left thumb) -->
     <div id="mobile-joystick">
-
-        <div id="joystick-center">
+        <div id="joystick-base">
+            <div id="joystick-ring"></div>
             <div id="joystick-knob"></div>
+        </div>
+    </div>
+
+    <!-- Right thumb pad: speed selector + primary actions -->
+    <div id="mobile-right-pad">
+
+        <div id="mobile-actions">
+            <button id="mobile-buy" class="mobile-action buy">
+                <span>&#128722;</span>
+                <b>BUY</b>
+            </button>
+            <button id="mobile-wake" class="mobile-action wake">
+                <span>&#9728;&#65039;</span>
+                <b>WAKE</b>
+            </button>
+            <button id="mobile-pause" class="mobile-action pause">
+                <span>&#9208;</span>
+                <b>PAUSE</b>
+            </button>
+            <button id="mobile-help" class="mobile-action help">
+                <span>&#10067;</span>
+                <b>HELP</b>
+            </button>
+        </div>
+
+        <div id="mobile-speed">
+            <button class="mobile-speed-button active" data-speed="1">1&#215;</button>
+            <button class="mobile-speed-button" data-speed="2">2&#215;</button>
+            <button class="mobile-speed-button" data-speed="5">5&#215;</button>
+            <button class="mobile-speed-button" data-speed="10">10&#215;</button>
         </div>
 
     </div>
 
-    <div id="mobile-actions">
-
-        <button id="mobile-buy" class="mobile-action buy">
-            <span>🛒</span>
-            <b>BUY</b>
-        </button>
-
-        <button id="mobile-wake" class="mobile-action wake">
-            <span>☀️</span>
-            <b>WAKE</b>
-        </button>
-
-        <button id="mobile-pause" class="mobile-action pause">
-            <span>⏸</span>
-            <b>PAUSE</b>
-        </button>
-
-    </div>
-
-    <div id="mobile-speed">
-
-        <button class="mobile-speed-button active" data-speed="1">1×</button>
-        <button class="mobile-speed-button" data-speed="2">2×</button>
-        <button class="mobile-speed-button" data-speed="5">5×</button>
-        <button class="mobile-speed-button" data-speed="10">10×</button>
-
-    </div>
+    <!-- Mini utility toggles -->
+    <button id="mobile-log-toggle" title="Toggle activity log">&#128203;</button>
+    <button id="mobile-settings" title="Settings">&#9881;&#65039;</button>
 
 </div>
 
 </body>
 
 </html>
-<style id="MOBILE_CONTROLS_V5_FINAL">
-
-/* =========================================================
-   CALL FLOOR MOBILE V5
-   ========================================================= */
-
-#mobile-controls {
-    display: none !important;
-}
-
-@media (max-width: 1100px), (pointer: coarse) {
-
-    #mobile-controls {
-        display: block !important;
-        position: fixed !important;
-        inset: 0 !important;
-        z-index: 99999 !important;
-        pointer-events: none !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-        touch-action: none !important;
-    }
-
-    #mobile-controls *,
-    #mobile-controls button {
-        touch-action: none !important;
-        -webkit-tap-highlight-color: transparent !important;
-    }
-
-    /* =====================================================
-       ANALOG JOYSTICK - LEFT
-       ===================================================== */
-
-    #mobile-joystick {
-        position: absolute !important;
-        left: 22px !important;
-        bottom: 28px !important;
-
-        width: 145px !important;
-        height: 145px !important;
-
-        border-radius: 50% !important;
-
-        background:
-            radial-gradient(
-                circle at center,
-                rgba(0,229,199,.16) 0%,
-                rgba(13,17,23,.88) 58%,
-                rgba(5,8,12,.94) 100%
-            ) !important;
-
-        border: 2px solid rgba(0,229,199,.45) !important;
-
-        box-shadow:
-            0 10px 35px rgba(0,0,0,.55),
-            inset 0 0 30px rgba(0,229,199,.08) !important;
-
-        pointer-events: auto !important;
-        overflow: visible !important;
-    }
-
-    #mobile-joystick::before {
-        content: "" !important;
-        position: absolute !important;
-        inset: 17px !important;
-
-        border-radius: 50% !important;
-
-        border: 1px solid rgba(255,255,255,.12) !important;
-
-        box-shadow:
-            inset 0 0 20px rgba(0,0,0,.45) !important;
-
-        pointer-events: none !important;
-    }
-
-    #joystick-center {
-        position: absolute !important;
-
-        left: 50% !important;
-        top: 50% !important;
-
-        width: 76px !important;
-        height: 76px !important;
-
-        transform: translate(-50%, -50%) !important;
-
-        border-radius: 50% !important;
-
-        background:
-            radial-gradient(
-                circle at 35% 30%,
-                rgba(255,255,255,.22),
-                rgba(0,229,199,.55) 35%,
-                rgba(0,100,90,.9) 100%
-            ) !important;
-
-        border: 2px solid rgba(255,255,255,.25) !important;
-
-        box-shadow:
-            0 5px 20px rgba(0,0,0,.55),
-            inset 0 3px 8px rgba(255,255,255,.15) !important;
-
-        pointer-events: none !important;
-    }
-
-    #joystick-knob {
-        position: absolute !important;
-
-        left: 50% !important;
-        top: 50% !important;
-
-        width: 48px !important;
-        height: 48px !important;
-
-        transform: translate(-50%, -50%) !important;
-
-        border-radius: 50% !important;
-
-        background:
-            radial-gradient(
-                circle at 35% 30%,
-                #ffffff 0%,
-                #d9fff9 12%,
-                #00e5c7 55%,
-                #008f83 100%
-            ) !important;
-
-        border: 2px solid rgba(255,255,255,.5) !important;
-
-        box-shadow:
-            0 5px 18px rgba(0,0,0,.5),
-            inset 0 3px 8px rgba(255,255,255,.4) !important;
-
-        pointer-events: none !important;
-
-        transition: transform .04s linear !important;
-    }
-
-    /* Kill every old directional button */
-    #mobile-up,
-    #mobile-down,
-    #mobile-left,
-    #mobile-right,
-    .joystick-btn,
-    .mobile-dpad {
-        display: none !important;
-    }
-
-    /* =====================================================
-       ACTION BUTTONS - RIGHT BOTTOM
-       ===================================================== */
-
-    #mobile-actions {
-        position: absolute !important;
-
-        right: 20px !important;
-        bottom: 28px !important;
-
-        width: 190px !important;
-
-        display: grid !important;
-
-        grid-template-columns: 1fr 1fr !important;
-
-        gap: 10px !important;
-
-        pointer-events: auto !important;
-    }
-
-    .mobile-action {
-        position: relative !important;
-
-        min-width: 0 !important;
-        width: 90px !important;
-        height: 68px !important;
-
-        border-radius: 17px !important;
-
-        border: 1px solid rgba(255,255,255,.16) !important;
-
-        background: rgba(8,12,18,.94) !important;
-
-        color: #f0f6fc !important;
-
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-
-        gap: 2px !important;
-
-        font-family: Inter, system-ui, sans-serif !important;
-
-        font-weight: 900 !important;
-
-        box-shadow:
-            0 7px 25px rgba(0,0,0,.5),
-            inset 0 1px 0 rgba(255,255,255,.05) !important;
-
-        backdrop-filter: none !important;
-
-        pointer-events: auto !important;
-    }
-
-    .mobile-action span {
-        display: block !important;
-        font-size: 25px !important;
-        line-height: 1 !important;
-    }
-
-    .mobile-action b {
-        font-size: 11px !important;
-        letter-spacing: .08em !important;
-    }
-
-    .mobile-action.buy {
-        border: 2px solid rgba(0,229,199,.7) !important;
-        color: #00e5c7 !important;
-    }
-
-    .mobile-action.wake {
-        border: 2px solid rgba(96,165,250,.7) !important;
-        color: #60a5fa !important;
-    }
-
-    .mobile-action.pause {
-        border: 2px solid rgba(245,158,11,.7) !important;
-        color: #f59e0b !important;
-    }
-
-    .mobile-action:active,
-    .mobile-action.pressed {
-        transform: scale(.93) !important;
-        background: rgba(0,229,199,.18) !important;
-    }
-
-    /* PAUSE full width underneath */
-    #mobile-pause {
-        grid-column: 1 / 3 !important;
-        width: 190px !important;
-        height: 54px !important;
-    }
-
-    /* =====================================================
-       SPEED - TOP CENTER
-       ===================================================== */
-
-    #mobile-speed {
-        position: absolute !important;
-
-        left: 50% !important;
-        top: 92px !important;
-        bottom: auto !important;
-
-        transform: translateX(-50%) !important;
-
-        display: flex !important;
-
-        width: auto !important;
-        min-width: 0 !important;
-        height: auto !important;
-
-        padding: 7px !important;
-
-        gap: 6px !important;
-
-        border-radius: 18px !important;
-
-        background: rgba(8,12,18,.94) !important;
-
-        border: 1px solid rgba(255,255,255,.16) !important;
-
-        box-shadow:
-            0 7px 25px rgba(0,0,0,.45) !important;
-
-        pointer-events: auto !important;
-    }
-
-    /* IMPORTANT:
-       Old .mobile-speed rules targeted the buttons too.
-       Completely neutralize them.
-    */
-
-    #mobile-speed .mobile-speed-button,
-    #mobile-speed button {
-        position: static !important;
-
-        width: 54px !important;
-        min-width: 54px !important;
-
-        height: 42px !important;
-        min-height: 42px !important;
-
-        padding: 0 !important;
-        margin: 0 !important;
-
-        border-radius: 12px !important;
-
-        border: 1px solid #30363d !important;
-
-        background: #0d1117 !important;
-
-        color: #8b949e !important;
-
-        font-size: 13px !important;
-
-        font-weight: 800 !important;
-
-        box-shadow: none !important;
-
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    #mobile-speed .mobile-speed-button.active {
-        background: #00e5c7 !important;
-        border-color: #00e5c7 !important;
-        color: #0d1117 !important;
-    }
-
-    /* =====================================================
-       REMOVE OLD MOBILE UI
-       ===================================================== */
-
-    .mobile-device-label,
-    .mobile-top-actions,
-    .mobile-interaction,
-    #mobile-interact,
-    #mobile-e,
-    #mobile-f,
-    #mobile-space,
-    #mobile-h {
-        display: none !important;
-    }
-
-    /* =====================================================
-       PHONE
-       ===================================================== */
-
-    @media (max-width: 520px) {
-
-        #mobile-joystick {
-            left: 14px !important;
-            bottom: 20px !important;
-            width: 130px !important;
-            height: 130px !important;
-        }
-
-        #joystick-center {
-            width: 70px !important;
-            height: 70px !important;
-        }
-
-        #joystick-knob {
-            width: 45px !important;
-            height: 45px !important;
-        }
-
-        #mobile-actions {
-            right: 12px !important;
-            bottom: 20px !important;
-            width: 172px !important;
-            gap: 8px !important;
-        }
-
-        .mobile-action {
-            width: 82px !important;
-            height: 62px !important;
-        }
-
-        #mobile-pause {
-            width: 172px !important;
-        }
-
-        #mobile-speed {
-            top: 90px !important;
-        }
-
-        #mobile-speed .mobile-speed-button,
-        #mobile-speed button {
-            width: 48px !important;
-            min-width: 48px !important;
-            height: 38px !important;
-        }
-    }
-
-    /* =====================================================
-       LANDSCAPE
-       ===================================================== */
-
-    @media (orientation: landscape) and (max-height: 520px) {
-
-        #mobile-joystick {
-            left: 15px !important;
-            bottom: 12px !important;
-            transform: scale(.78) !important;
-            transform-origin: bottom left !important;
-        }
-
-        #mobile-actions {
-            right: 15px !important;
-            bottom: 12px !important;
-            transform: scale(.82) !important;
-            transform-origin: bottom right !important;
-        }
-
-        #mobile-speed {
-            top: 65px !important;
-        }
-    }
-}
-
-</style>
-

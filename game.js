@@ -63,6 +63,10 @@ setInterval(saveGame, 30000);
 
 // ==================== SOUND SYSTEM ====================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+window.__resumeAudio = function () {
+    try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { }
+};
+if (document.readyState === 'complete') window.__resumeAudio();
 let soundEnabled = true;
 let musicEnabled = true;
 let musicOsc = null;
@@ -175,6 +179,9 @@ function startGame() {
 }
 
 // ==================== TUTORIAL SYSTEM ====================
+// Pick mobile vs desktop wording for tutorial/help text.
+const t = (mobile, desktop) => (IS_MOBILE_DEVICE ? mobile : desktop);
+
 const tutorial = {
     active: false,
     step: 0,
@@ -182,7 +189,7 @@ const tutorial = {
     steps: [
         {
             message: '👋 Welcome to Call Center Tycoon!',
-            hint: 'Use WASD to walk around the office',
+            hint: t('Use the joystick on the left to walk around', 'Use WASD to walk around the office'),
             check: () => isWalking,
             delay: 0
         },
@@ -193,7 +200,7 @@ const tutorial = {
             delay: 0
         },
         {
-            message: '👔 Press E to hire your FREE Supervisor!',
+            message: t('👔 Tap BUY to hire your FREE Supervisor!', '👔 Press E to hire your FREE Supervisor!'),
             hint: 'Supervisors auto-wake sleeping agents',
             check: () => G.hasSupervisor,
             delay: 1000
@@ -205,7 +212,7 @@ const tutorial = {
             delay: 0
         },
         {
-            message: '🛒 Press E to buy 50 leads!',
+            message: t('🛒 Tap the green BUY button to get 50 leads!', '🛒 Press E to buy 50 leads!'),
             hint: 'Leads cost $100 but are worth it',
             check: () => G.upgrades.leads_50 > 0,
             delay: 500
@@ -236,7 +243,7 @@ const tutorial = {
         },
         {
             message: '👤 Hire more agents to scale up!',
-            hint: 'Walk to the glowing HIRE pad and press E',
+            hint: t('Walk to the glowing HIRE pad and tap the BUY button', 'Walk to the glowing HIRE pad and press E'),
             check: () => G.agents.length > 1,
             delay: 500
         },
@@ -795,11 +802,24 @@ const COLORS = { leads: 0xf59e0b, hire: 0x3b82f6, train: 0x22c55e, rep: 0xa855f7
 // MOBILE PERFORMANCE MODE
 // ============================================================
 const IS_MOBILE_DEVICE =
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
     (navigator.maxTouchPoints > 0 && window.innerWidth < 1100);
 
-const MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 2);
+// Capping pixel ratio is the single biggest win for low-end GPUs.
+// A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
+// than DPR 1.5. Keep presentable without melting the GPU.
+const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+const LOW_END_MOBILE =
+    IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
+const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
 const DESKTOP_DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// Adaptive DPR: if the device struggles at our starting DPR, drop to 1.
+let adaptiveDPR = MOBILE_DPR;
+let dprSampleFrames = 0;
+let dprSampleTime = 0;
+let dprDowngraded = false;
 
 if (IS_MOBILE_DEVICE) {
     document.documentElement.classList.add('mobile-device');
@@ -824,6 +844,11 @@ function applyMobileGPUOptimizations() {
 
         obj.frustumCulled = true;
 
+        // Shadow mapping is the #1 GPU killer on Android in WebView.
+        // Drop it entirely on mobile — the fake-ambient look still works.
+        obj.castShadow = false;
+        obj.receiveShadow = false;
+
         const materials = Array.isArray(obj.material)
             ? obj.material
             : [obj.material];
@@ -831,14 +856,14 @@ function applyMobileGPUOptimizations() {
         materials.forEach((mat) => {
             if (!mat) return;
 
-            // Keep shadows enabled for high visual quality.
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-
-            // Mobile doesn't need expensive normal map / displacement work
-            // unless the material actually requires it.
+            // Mobile doesn't need expensive normal map / displacement work.
             if ('displacementScale' in mat) {
                 mat.displacementScale = 0;
+            }
+
+            // Instanced emissive glow is unnecessary on small screens.
+            if (mat.emissiveIntensity !== undefined && mat.emissiveIntensity === 0 && mat.emissive) {
+                mat.emissiveIntensity = mat.emissiveIntensity || 0;
             }
         });
     });
@@ -855,8 +880,30 @@ function setMobileViewport() {
 
     renderer.setSize(w, h, false);
     renderer.setPixelRatio(
-        IS_MOBILE_DEVICE ? MOBILE_DPR : DESKTOP_DPR
+        IS_MOBILE_DEVICE ? adaptiveDPR : DESKTOP_DPR
     );
+}
+
+function maybeDowngradeDPR(frameMs) {
+    if (!IS_MOBILE_DEVICE || dprDowngraded || adaptiveDPR <= 1) return;
+
+    dprSampleFrames++;
+    dprSampleTime += frameMs;
+
+    if (dprSampleFrames < 120) return;
+
+    const avgMs = dprSampleTime / dprSampleFrames;
+
+    // Persistent ~30fps or worse -> drop resolution once.
+    if (avgMs > 33) {
+        dprDowngraded = true;
+        adaptiveDPR = 1;
+        setMobileViewport();
+        addActivity('⚡', 'Performance mode: lower resolution', 'warning');
+    }
+
+    dprSampleFrames = 0;
+    dprSampleTime = 0;
 }
 
 window.addEventListener('resize', setMobileViewport);
@@ -873,12 +920,17 @@ function init() {
     camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
     camera.position.set(0, 20, 30);
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', precision: 'highp' });
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: !IS_MOBILE_DEVICE,
+        powerPreference: 'high-performance',
+        precision: IS_MOBILE_DEVICE ? 'mediump' : 'highp'
+    });
     renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(IS_MOBILE_DEVICE ? MOBILE_DPR : DESKTOP_DPR);
-    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(IS_MOBILE_DEVICE ? adaptiveDPR : DESKTOP_DPR);
+    renderer.shadowMap.enabled = !IS_MOBILE_DEVICE;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = IS_MOBILE_DEVICE ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
     updateLoading(25, 'Lighting...');
@@ -1544,6 +1596,8 @@ window.purchaseUpgrade = purchaseUpgrade;
 window.wakeNearbyAgent = wakeNearbyAgent;
 window.togglePause = togglePause;
 window.setSpeed = setSpeed;
+window.toggleHelp = toggleHelp;
+window.skipTutorial = skipTutorial;
 
 document.addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
@@ -1572,10 +1626,18 @@ document.querySelectorAll('.speed-btn').forEach(btn => {
 function setSpeed(s) {
     G.speed = s;
     document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', +b.dataset.speed === s));
+    document.querySelectorAll('.mobile-speed-button').forEach(b => b.classList.toggle('active', +b.dataset.speed === s));
 }
 
 function togglePause() {
     G.isRunning = !G.isRunning;
+    const mp = document.getElementById('mobile-pause');
+    if (mp) {
+        const icon = mp.querySelector('span');
+        const label = mp.querySelector('b');
+        if (icon) icon.textContent = G.isRunning ? '⏸' : '▶️';
+        if (label) label.textContent = G.isRunning ? 'PAUSE' : 'PLAY';
+    }
     updateHUD();
 }
 
@@ -2083,7 +2145,7 @@ function updatePrompt(pad) {
         document.getElementById('prompt-long').textContent = u.long || u.desc;
         document.getElementById('prompt-cost').textContent = maxed ? 'MAXED' : '$' + cost;
         document.getElementById('prompt-level').textContent = u.max ? `Level ${lvl}/${u.max}` : '';
-        document.getElementById('prompt-key').textContent = maxed ? 'Fully Upgraded' : 'Press E to Buy';
+        document.getElementById('prompt-key').textContent = maxed ? 'Fully Upgraded' : (IS_MOBILE_DEVICE ? 'Tap BUY' : 'Press E to Buy');
 
         el.classList.toggle('cant-afford', !afford || maxed);
         el.classList.add('visible');
@@ -2093,6 +2155,12 @@ function updatePrompt(pad) {
 }
 
 function updateHUD() {
+    // Throttle DOM writes: at 10x speed simMinute() can run ~10x/frame,
+    // and writing ~15 elements every frame destroys platform performance.
+    const now = performance.now();
+    if (now - lastHUDUpdate < 200) return;
+    lastHUDUpdate = now;
+
     document.getElementById('hud-day-num').textContent = G.day;
     document.getElementById('hud-cash').textContent = '$' + Math.round(G.cash).toLocaleString();
     document.getElementById('hud-agents').textContent = G.agents.length;
@@ -2211,6 +2279,7 @@ function animate(t) {
     try {
         requestAnimationFrame(animate);
 
+        const frameStart = performance.now();
         const dt = Math.min(t - lastTime, 100); // Cap dt to prevent huge jumps
         lastTime = t;
 
@@ -2231,6 +2300,8 @@ function animate(t) {
         if (playerLight) playerLight.intensity = 0.7 + Math.sin(t * 0.003) * 0.25;
 
         renderer.render(scene, camera);
+
+        maybeDowngradeDPR(performance.now() - frameStart);
     } catch (e) {
         console.error('Animation loop error:', e);
         // Try to continue anyway
@@ -2239,12 +2310,14 @@ function animate(t) {
 }
 
 // ==================== RESIZE ====================
+let lastHUDUpdate = 0;
 window.addEventListener('resize', () => {
     if (!camera || !renderer) return;
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
+    setMobileViewport();
 });
+if (screen.orientation && 'addEventListener' in screen.orientation) {
+    screen.orientation.addEventListener('change', setMobileViewport);
+}
 
 // ==================== START ====================
 window.addEventListener('load', () => {
@@ -2375,104 +2448,9 @@ function updateDayNightLighting() {
 
 // ============================================================
 // MOBILE TOUCH CONTROLS
-// These controls emulate the existing keyboard controls so
-// the original game logic remains untouched.
+// The full touch layer (joystick, action buttons, speed, help,
+// native bridge) now lives in mobile-controls.js. This legacy
+// synthetic-KeyboardEvent block was removed because it caused
+// double-firing (touchstart + click + direct API calls).
 // ============================================================
-
-(function setupMobileControls() {
-    if (!IS_MOBILE_DEVICE) return;
-
-    function keyDown(key) {
-        window.dispatchEvent(new KeyboardEvent('keydown', {
-            key: key,
-            code: key === ' ' ? 'Space' : 'Key' + key.toUpperCase(),
-            bubbles: true
-        }));
-    }
-
-    function keyUp(key) {
-        window.dispatchEvent(new KeyboardEvent('keyup', {
-            key: key,
-            code: key === ' ' ? 'Space' : 'Key' + key.toUpperCase(),
-            bubbles: true
-        }));
-    }
-
-    function bindHoldButton(element, key) {
-        if (!element) return;
-
-        let active = false;
-
-        const start = (e) => {
-            e.preventDefault();
-            if (active) return;
-            active = true;
-            element.classList.add('pressed');
-            keyDown(key);
-        };
-
-        const end = (e) => {
-            e.preventDefault();
-            if (!active) return;
-            active = false;
-            element.classList.remove('pressed');
-            keyUp(key);
-        };
-
-        element.addEventListener('touchstart', start, { passive: false });
-        element.addEventListener('touchend', end, { passive: false });
-        element.addEventListener('touchcancel', end, { passive: false });
-
-        // Also allow mouse testing on desktop.
-        element.addEventListener('mousedown', start);
-        element.addEventListener('mouseup', end);
-        element.addEventListener('mouseleave', end);
-    }
-
-    function bindTapButton(element, key) {
-        if (!element) return;
-
-        const tap = (e) => {
-            e.preventDefault();
-            keyDown(key);
-
-            setTimeout(() => {
-                keyUp(key);
-            }, 80);
-        };
-
-        element.addEventListener('touchstart', tap, { passive: false });
-        element.addEventListener('click', tap);
-    }
-
-    // Virtual joystick / movement.
-    bindHoldButton(document.getElementById('mobile-up'), 'w');
-    bindHoldButton(document.getElementById('mobile-down'), 's');
-    bindHoldButton(document.getElementById('mobile-left'), 'a');
-    bindHoldButton(document.getElementById('mobile-right'), 'd');
-
-    // Existing keyboard interactions.
-    bindTapButton(document.getElementById('mobile-buy'), 'e');
-    bindTapButton(document.getElementById('mobile-wake'), 'f');
-    bindTapButton(document.getElementById('mobile-pause'), ' ');
-
-    // Speed buttons use the existing 1-4 keyboard logic.
-    bindTapButton(document.getElementById('mobile-speed-1'), '1');
-    bindTapButton(document.getElementById('mobile-speed-2'), '2');
-    bindTapButton(document.getElementById('mobile-speed-3'), '3');
-    bindTapButton(document.getElementById('mobile-speed-4'), '4');
-
-    // Hide the old desktop control instructions on mobile.
-    const controls = document.querySelector('.controls-panel');
-    if (controls) controls.style.display = 'none';
-
-    // Prevent browser gestures from interfering with the game.
-    document.body.addEventListener('touchmove', (e) => {
-        if (e.target.closest('#mobile-controls')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-
-    console.log('📱 Mobile touch controls enabled');
-})();
 
