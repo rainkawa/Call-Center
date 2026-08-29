@@ -54,8 +54,8 @@ function loadGame() {
 }
 
 function resetGame() {
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    try { location.reload(); } catch (e) {}
 }
 
 // Auto-save every 30 seconds
@@ -2363,13 +2363,26 @@ if (screen.orientation && 'addEventListener' in screen.orientation) {
 }
 
 // ==================== START ====================
-window.addEventListener('load', () => {
+let startMenuInitialized = false;
+function bootGame() {
+    if (startMenuInitialized) return;
     if (typeof THREE === 'undefined') {
-        alert('Failed to load Three.js');
+        console.error('Three.js failed to load');
+        const missing = document.getElementById('start-missing-three');
+        if (missing) missing.classList.add('visible');
         return;
     }
+    startMenuInitialized = true;
     initStartMenu();
-});
+}
+// Run as soon as the DOM is parseable (works in restricted/offline WebViews
+// where external resources can delay or block the window "load" event).
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootGame);
+} else {
+    bootGame();
+}
+window.addEventListener('load', bootGame);
 
 // Tutorial skip button and ESC key
 document.addEventListener('keydown', e => {

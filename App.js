@@ -8,7 +8,7 @@ import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import * as SplashScreen from 'expo-splash-screen';
 
-import gameHtml from './webgame/index.html';
+import gameHtml from './webgame/index.html.js';
 
 SplashScreen.preventAutoHideAsync?.().catch(() => {});
 
@@ -106,7 +106,7 @@ export default function App() {
       <StatusBar hidden style="light" />
       <WebView
         ref={webViewRef}
-        source={gameHtml}
+        source={{ html: gameHtml, baseUrl: 'https://localhost/' }}
         style={styles.webview}
         originWhitelist={['*']}
         javaScriptEnabled

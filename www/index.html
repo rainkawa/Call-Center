@@ -650,6 +650,22 @@
             gap: 15px;
         }
 
+        .start-error {
+            margin-top: 20px;
+            color: #f85149;
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 340px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .start-error.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .start-btn {
             background: linear-gradient(135deg, rgba(0, 229, 199, 0.15), rgba(13, 17, 23, 0.9));
             border: 2px solid var(--accent);
@@ -1898,6 +1914,7 @@ html.mobile-device .loading-bar {
             <button class="start-btn" id="btn-continue" disabled>▶️ Continue</button>
             <button class="start-btn secondary" id="btn-new-game">🆕 New Game</button>
         </div>
+        <div class="start-error" id="start-missing-three">⚠️ 3D engine failed to load. Try closing and reopening the game.</div>
     </div>
 
     <!-- Tutorial Overlay -->
