@@ -2245,7 +2245,14 @@ function resetGame() {
 setInterval(saveGame, 30000);
 
 // ==================== SOUND SYSTEM ====================
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Some Android WebViews expose no AudioContext (or only a prefixed one), and
+// constructing it unconditionally would abort the whole script — killing the
+// start menu buttons. Guard it so the game never dies on audio.
+let audioCtx = null;
+try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+} catch (e) { audioCtx = null; }
 window.__resumeAudio = function () {
     try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { }
 };
@@ -2330,35 +2337,71 @@ let gameStarted = false;
 let isNewGame = false;
 
 function initStartMenu() {
-    const hasSave = localStorage.getItem(SAVE_KEY) !== null;
     const continueBtn = document.getElementById('btn-continue');
     const newGameBtn = document.getElementById('btn-new-game');
 
-    if (hasSave) {
+    // localStorage can throw (private mode, restricted WebView). Never let it
+    // block the start buttons — wrap every access defensively.
+    let hasSave = false;
+    let saveDay = 1;
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw !== null) {
+            hasSave = true;
+            saveDay = JSON.parse(raw).day || 1;
+        }
+    } catch (e) {
+        hasSave = false;
+    }
+
+    if (hasSave && continueBtn) {
         continueBtn.disabled = false;
-        continueBtn.textContent = '▶️ Continue (Day ' + (JSON.parse(localStorage.getItem(SAVE_KEY)).day || 1) + ')';
+        continueBtn.textContent = '▶️ Continue (Day ' + saveDay + ')';
     }
 
     continueBtn.addEventListener('click', () => {
-        if (hasSave) {
-            isNewGame = false;
-            startGame();
-        }
+        if (!hasSave) return;
+        isNewGame = false;
+        startGame();
     });
 
     newGameBtn.addEventListener('click', () => {
-        localStorage.removeItem(SAVE_KEY);
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch (e) { /* ignore — save is cleared in-memory below */ }
+        G.cash = 500; G.leads = 50; G.reputation = 75; G.day = 1;
+        G.upgrades = {}; G.hasSupervisor = false; G.hasCoffee = false;
+        G.totalRevenue = 0; G.totalSales = 0; G.agents = [];
         isNewGame = true;
         startGame();
     });
 }
 
 function startGame() {
-    document.getElementById('start-menu').classList.add('hidden');
-    document.getElementById('loading-screen').classList.remove('hidden');
-    startMusic();
-    gameStarted = true;
-    init();
+    const menu = document.getElementById('start-menu');
+    const loader = document.getElementById('loading-screen');
+    if (menu) menu.classList.add('hidden');
+    if (loader) loader.classList.remove('hidden');
+
+    // Guard the whole startup so a hiccup (WebGL unavailable, an init error)
+    // can never leave the loading screen frozen on the start menu.
+    try {
+        try { startMusic(); } catch (e) { }
+        gameStarted = true;
+        init();
+    } catch (e) {
+        console.error('Failed to start game:', e);
+        const status = document.getElementById('loading-screen')
+            ?.querySelector('.loading-subtitle') ||
+            document.getElementById('loading-screen');
+        if (status) {
+            status.textContent = 'Could not start 3D — try reloading (WebGL may be off).';
+        }
+        setTimeout(() => {
+            if (loader) loader.classList.add('hidden');
+            if (menu) menu.classList.remove('hidden');
+        }, 1500);
+    }
 }
 
 // ============================================================
