@@ -178,6 +178,33 @@ function startGame() {
     init();
 }
 
+// ============================================================
+// MOBILE PERFORMANCE MODE
+// ============================================================
+const IS_MOBILE_DEVICE =
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
+    (navigator.maxTouchPoints > 0 && window.innerWidth < 1100);
+
+// Capping pixel ratio is the single biggest win for low-end GPUs.
+// A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
+// than DPR 1.5. Keep presentable without melting the GPU.
+const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+const LOW_END_MOBILE =
+    IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
+const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
+const DESKTOP_DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// Adaptive DPR: if the device struggles at our starting DPR, drop to 1.
+let adaptiveDPR = MOBILE_DPR;
+let dprSampleFrames = 0;
+let dprSampleTime = 0;
+let dprDowngraded = false;
+
+if (IS_MOBILE_DEVICE) {
+    document.documentElement.classList.add('mobile-device');
+}
+
 // ==================== TUTORIAL SYSTEM ====================
 // Pick mobile vs desktop wording for tutorial/help text.
 const t = (mobile, desktop) => (IS_MOBILE_DEVICE ? mobile : desktop);
@@ -797,33 +824,6 @@ const COLORS = { leads: 0xf59e0b, hire: 0x3b82f6, train: 0x22c55e, rep: 0xa855f7
 
 
 // ==================== THREE.JS SETUP ====================
-
-// ============================================================
-// MOBILE PERFORMANCE MODE
-// ============================================================
-const IS_MOBILE_DEVICE =
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
-    (navigator.maxTouchPoints > 0 && window.innerWidth < 1100);
-
-// Capping pixel ratio is the single biggest win for low-end GPUs.
-// A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
-// than DPR 1.5. Keep presentable without melting the GPU.
-const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-const LOW_END_MOBILE =
-    IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
-const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
-const DESKTOP_DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-// Adaptive DPR: if the device struggles at our starting DPR, drop to 1.
-let adaptiveDPR = MOBILE_DPR;
-let dprSampleFrames = 0;
-let dprSampleTime = 0;
-let dprDowngraded = false;
-
-if (IS_MOBILE_DEVICE) {
-    document.documentElement.classList.add('mobile-device');
-}
 
 let scene, camera, renderer, player, playerLight;
 const pads = [], desks = [], labels = [];

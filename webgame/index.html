@@ -1108,6 +1108,13 @@ html.mobile-device #mobile-controls {
     display: block;
 }
 
+/* Hide the game controls until an actual game is running, so the start
+   menu / loading screen are fully interactive and unobstructed. */
+html.mobile-device #start-menu:not(.hidden) ~ #mobile-controls,
+html.mobile-device #loading-screen:not(.hidden) ~ #mobile-controls {
+    display: none !important;
+}
+
 html.mobile-device {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -1577,6 +1584,42 @@ html.mobile-device .activity-list {
 
 html.mobile-device .start-menu {
     padding: 14px;
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: calc(max(14px, env(safe-area-inset-top)) + 8px);
+    padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 8px);
+}
+
+/* Center vertically when there's room, scroll when the screen is short. */
+html.mobile-device .start-menu:has(.start-logo) {
+    justify-content: center;
+}
+
+html.mobile-device .start-menu .start-buttons {
+    flex-shrink: 0;
+}
+
+@media (max-height: 340px) {
+    html.mobile-device .start-menu {
+        justify-content: flex-start;
+        gap: 6px;
+    }
+    html.mobile-device .start-logo {
+        font-size: 2.2rem;
+        margin-bottom: 2px;
+    }
+    html.mobile-device .start-title {
+        font-size: 1.35rem;
+    }
+    html.mobile-device .start-subtitle {
+        margin-bottom: 8px;
+    }
+    html.mobile-device .start-btn {
+        padding: 10px 24px;
+        min-width: 200px;
+        min-height: 44px;
+    }
 }
 
 html.mobile-device .start-logo {
@@ -2318,6 +2361,33 @@ function startGame() {
     init();
 }
 
+// ============================================================
+// MOBILE PERFORMANCE MODE
+// ============================================================
+const IS_MOBILE_DEVICE =
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
+    (navigator.maxTouchPoints > 0 && window.innerWidth < 1100);
+
+// Capping pixel ratio is the single biggest win for low-end GPUs.
+// A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
+// than DPR 1.5. Keep presentable without melting the GPU.
+const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+const LOW_END_MOBILE =
+    IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
+const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
+const DESKTOP_DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// Adaptive DPR: if the device struggles at our starting DPR, drop to 1.
+let adaptiveDPR = MOBILE_DPR;
+let dprSampleFrames = 0;
+let dprSampleTime = 0;
+let dprDowngraded = false;
+
+if (IS_MOBILE_DEVICE) {
+    document.documentElement.classList.add('mobile-device');
+}
+
 // ==================== TUTORIAL SYSTEM ====================
 // Pick mobile vs desktop wording for tutorial/help text.
 const t = (mobile, desktop) => (IS_MOBILE_DEVICE ? mobile : desktop);
@@ -2937,33 +3007,6 @@ const COLORS = { leads: 0xf59e0b, hire: 0x3b82f6, train: 0x22c55e, rep: 0xa855f7
 
 
 // ==================== THREE.JS SETUP ====================
-
-// ============================================================
-// MOBILE PERFORMANCE MODE
-// ============================================================
-const IS_MOBILE_DEVICE =
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
-    (navigator.maxTouchPoints > 0 && window.innerWidth < 1100);
-
-// Capping pixel ratio is the single biggest win for low-end GPUs.
-// A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
-// than DPR 1.5. Keep presentable without melting the GPU.
-const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-const LOW_END_MOBILE =
-    IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
-const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
-const DESKTOP_DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-// Adaptive DPR: if the device struggles at our starting DPR, drop to 1.
-let adaptiveDPR = MOBILE_DPR;
-let dprSampleFrames = 0;
-let dprSampleTime = 0;
-let dprDowngraded = false;
-
-if (IS_MOBILE_DEVICE) {
-    document.documentElement.classList.add('mobile-device');
-}
 
 let scene, camera, renderer, player, playerLight;
 const pads = [], desks = [], labels = [];
