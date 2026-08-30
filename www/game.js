@@ -231,8 +231,13 @@ const IS_MOBILE_DEVICE =
 
 // Capping pixel ratio is the single biggest win for low-end GPUs.
 // A 1080p+ phone at native DPR (~2.75) renders ~4-9x more fragments
-// than DPR 1.5. Keep presentable without melting the GPU.
-const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+// than DPR 2. A hard cap of 1.5 made the image visibly soft/blurry on
+// modern high-DPR phones, so we raise it to 2 — roughly a 4x fragment
+// reduction versus native still, but clearly sharper. An adaptive
+// downgrade to 1 still protects genuinely low-end GPUs (see
+// maybeDowngradeDPR). Low-end (<=4 cores) devices keep DPR 1 from the
+// start so the game never chokes on startup.
+const BASE_MOBILE_DPR = Math.min(window.devicePixelRatio || 1, 2);
 const LOW_END_MOBILE =
     IS_MOBILE_DEVICE && (navigator.hardwareConcurrency || 4) <= 4;
 const MOBILE_DPR = LOW_END_MOBILE ? 1 : BASE_MOBILE_DPR;
@@ -1072,21 +1077,39 @@ function createEnvironment() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Premium herringbone-style floor tiles
+    // Premium herringbone-style floor tiles.
+    // Previously each tile was its own Mesh (~238 draw calls). They are now
+    // rendered as 3 InstancedMeshes (one per material), cutting ~238 draw
+    // calls down to just 3 with zero visual difference — a large driver/CPU
+    // win, especially on mobile WebViews where draw-call count often caps FPS.
     const tileGeo = new THREE.PlaneGeometry(3.8, 3.8);
+    tileGeo.rotateX(-Math.PI / 2); // lie flat facing +Y, matching the old per-tile setup
     const tileDark = new THREE.MeshStandardMaterial({ color: 0x2a2a3e, roughness: 0.55, metalness: 0.05 });
     const tileMid = new THREE.MeshStandardMaterial({ color: 0x32324a, roughness: 0.55, metalness: 0.05 });
     const tileLight = new THREE.MeshStandardMaterial({ color: 0x3a3a52, roughness: 0.50, metalness: 0.08 });
-    const tileMats = [tileDark, tileMid, tileLight];
+
+    const tilePositions = [[], [], []];
     for (let x = -32; x <= 32; x += 4) {
         for (let z = -34; z <= 18; z += 4) {
             const idx = (Math.abs(x) + Math.abs(z)) % 3;
-            const tile = new THREE.Mesh(tileGeo, tileMats[idx]);
-            tile.rotation.x = -Math.PI / 2;
-            tile.position.set(x, 0.01, z);
-            scene.add(tile);
+            tilePositions[idx].push([x, 0.01, z]);
         }
     }
+    const tileMats = [tileDark, tileMid, tileLight];
+    const _mm = new THREE.Matrix4();
+    const _mp = new THREE.Vector3();
+    const _ms = new THREE.Vector3(1, 1, 1);
+    const _mq = new THREE.Quaternion();
+    tileMats.forEach((mat, mi) => {
+        const pos = tilePositions[mi];
+        const inst = new THREE.InstancedMesh(tileGeo, mat, pos.length);
+        pos.forEach(([x, y, z], i) => {
+            _mm.compose(_mp.set(x, y, z), _mq, _ms);
+            inst.setMatrixAt(i, _mm);
+        });
+        inst.instanceMatrix.needsUpdate = true;
+        scene.add(inst);
+    });
 
     // Accent floor strips (walkway markers)
     const stripMat = new THREE.MeshStandardMaterial({ color: 0x00e5c7, emissive: 0x00e5c7, emissiveIntensity: 0.08, roughness: 0.4 });
@@ -1236,8 +1259,10 @@ function createEnvironment() {
     scene.add(coolerTop);
 
     // Ceiling lights — extended to cover wider office
-    for (let x = -28; x <= 28; x += 12) {
-        for (let z = -30; z <= 15; z += 10) {
+    let _px = 0, _pz = 0;
+    for (let x = -28; x <= 28; x += 12, _px++) {
+        _pz = 0;
+        for (let z = -30; z <= 15; z += 10, _pz++) {
             // Thin recessed light panel
             const lightPanel = new THREE.Mesh(
                 new THREE.PlaneGeometry(4, 1.5),
@@ -1247,10 +1272,17 @@ function createEnvironment() {
             lightPanel.position.set(x, 11.99, z);
             scene.add(lightPanel);
 
-            // Point light for illumination
-            const pLight = new THREE.PointLight(0xfff5e6, 0.3, 20);
-            pLight.position.set(x, 11.5, z);
-            scene.add(pLight);
+            // Point light for illumination. Point lights are the most
+            // expensive light type in forward rendering (each one costs
+            // extra work per shaded fragment). On mobile we keep the visual
+            // ceiling panels but emit a real point light for only a sparse
+            // subset — the low-intensity (0.3) overlapping lights are
+            // visually interchangeable while the GPU load drops sharply.
+            if (!IS_MOBILE_DEVICE || ((_px + _pz) % 2 === 0)) {
+                const pLight = new THREE.PointLight(0xfff5e6, 0.3, 20);
+                pLight.position.set(x, 11.5, z);
+                scene.add(pLight);
+            }
         }
     }
 
@@ -2154,13 +2186,43 @@ function checkPads() {
     updatePrompt(nearest);
 }
 
+// The interaction prompt is recomputed every frame from checkPads(). Writing
+// to ~8 DOM nodes (textContent + classList) each frame is wasted work on
+// mobile, so we cache the last rendered state and only touch the DOM when it
+// actually changes (pad, level, affordability, visibility, wake-mode, etc.).
+let _promptKey = null;
+
 function updatePrompt(pad) {
     const el = document.getElementById('interaction-prompt');
 
     // Check for nearby sleeping agent
     sleepingAgent = G.agents.find(a => a.state === 'sleeping' && player.position.distanceTo(a.mesh.position) < 3);
 
+    let key = null;
+    let wake = false;
+
     if (sleepingAgent && !pad) {
+        wake = true;
+        key = 'wake';
+    } else if (pad) {
+        const u = pad.userData.upgrade;
+        const lvl = G.upgrades[u.id] || 0;
+        const cost = Math.floor(u.cost * Math.pow(u.mult || 1, lvl));
+        const afford = G.cash >= cost;
+        const maxed = u.max && lvl >= u.max;
+        key = 'pad:' + u.id + ':' + lvl + ':' + (afford ? 1 : 0);
+    } else {
+        key = 'none';
+    }
+
+    if (key === _promptKey) return;
+    _promptKey = key;
+
+    el.classList.remove('cant-afford');
+    el.classList.remove('wake');
+
+    if (wake) {
+        el.classList.add('wake', 'visible');
         document.getElementById('prompt-icon').textContent = '💤';
         document.getElementById('prompt-title').textContent = 'Sleeping Agent';
         document.getElementById('prompt-desc').textContent = 'This agent needs to be woken up!';
@@ -2168,12 +2230,8 @@ function updatePrompt(pad) {
         document.getElementById('prompt-cost').textContent = 'FREE';
         document.getElementById('prompt-level').textContent = '';
         document.getElementById('prompt-key').textContent = 'Press F to Wake';
-        el.classList.remove('cant-afford');
-        el.classList.add('wake', 'visible');
         return;
     }
-
-    el.classList.remove('wake');
 
     if (pad) {
         const u = pad.userData.upgrade;
@@ -2263,9 +2321,13 @@ function showMoneyPopup(amount) {
 }
 
 // ==================== CAMERA & ZOOM ====================
-let cameraZoom = 25; // Default zoom distance
-const ZOOM_MIN = 12;
-const ZOOM_MAX = 45;
+// Mobile screens show a much smaller footprint for a given camera distance.
+// Use a closer default zoom on mobile so the play area fills the view clearly,
+// while keeping the exact same FOV (55) and follow angle as desktop. The wheel
+// zoom is desktop-only, so on mobile we use the closest usable range.
+let cameraZoom = IS_MOBILE_DEVICE ? 15 : 25; // Default zoom distance
+const ZOOM_MIN = IS_MOBILE_DEVICE ? 9 : 12;
+const ZOOM_MAX = IS_MOBILE_DEVICE ? 24 : 45;
 
 function updateCamera() {
     if (!player || !camera) return;
